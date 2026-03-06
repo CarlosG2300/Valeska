@@ -299,27 +299,45 @@
     </div>
 
     <!-- Música de fondo -->
-    <audio id="bgMusic" src="1.mp3" loop preload="auto"></audio>
+    <audio id="bgMusic" loop preload="auto">
+        <source src="1.mp3" type="audio/mpeg">
+    </audio>
 
     <script>
-        // ===== MÚSICA DE FONDO =====
+        // ===== MÚSICA DE FONDO (compatible con móviles) =====
         const bgMusic = document.getElementById('bgMusic');
         bgMusic.volume = 0.5;
+        let musicStarted = false;
 
-        // Intentar autoplay
-        const playPromise = bgMusic.play();
-        if (playPromise !== undefined) {
-            playPromise.catch(() => {
-                // Si el navegador bloquea autoplay, reproducir al primer clic
-                const startMusic = () => {
-                    bgMusic.play();
-                    document.removeEventListener('click', startMusic);
-                    document.removeEventListener('touchstart', startMusic);
-                };
-                document.addEventListener('click', startMusic);
-                document.addEventListener('touchstart', startMusic);
+        function tryPlayMusic() {
+            if (musicStarted) return;
+            bgMusic.load();
+            const p = bgMusic.play();
+            if (p !== undefined) {
+                p.then(() => {
+                    musicStarted = true;
+                    removeListeners();
+                }).catch(() => { });
+            }
+        }
+
+        function handleUserGesture() {
+            tryPlayMusic();
+        }
+
+        function removeListeners() {
+            ['touchstart', 'touchend', 'click', 'pointerdown', 'keydown'].forEach(evt => {
+                document.removeEventListener(evt, handleUserGesture, { capture: true });
             });
         }
+
+        // Registrar en TODOS los eventos de interacción posibles
+        ['touchstart', 'touchend', 'click', 'pointerdown', 'keydown'].forEach(evt => {
+            document.addEventListener(evt, handleUserGesture, { capture: true, passive: true });
+        });
+
+        // Intentar autoplay (funciona en PC)
+        tryPlayMusic();
         // ===== LLUVIA DE CORAZONES ESTILO MATRIX =====
         const canvas = document.getElementById('heartRain');
         const ctx = canvas.getContext('2d');
